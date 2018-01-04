@@ -57,3 +57,33 @@ it can handle.)
 
 The questions then are: is this good enough? Does the benefit over something like FCFS make it
 worthwhile for the (moderately increased) work complexity?
+
+
+## Running the simulation
+
+The following invocation simulates continued delivery of batches of work to nodes.
+
+There are 60 (app, route) functions; we simulate kafka having a batch of 15 of these jobs
+in its queue every time it's polled. We simulate there being 10 nodes, of which 3 are asking
+for work at the point an evaluation happens. We perform 200 runs.
+
+    kexp --debug simulate 60 15 10 3 200
+
+### Interpreting the output
+
+We evaluate the metric above for the actual allocation of work performed, versus the best
+we might possibly do given the nodes making requests (assuming they had unbounded capacity),
+and also compare a random assignment of the work (simulating a simple FCFS strategy). The
+final value roughly scales the actual score against the random score, to give an idea of how
+well the actual score performs.
+
+You'll occasionally see a random allocation *outperform* the PQ-based mechanism. That's
+because the PQ is sorted by the rendezvous hash value rather than the metric score, so sometimes
+we choose to do work that's less optimal because the hash values it has are more insistent.
+These occasions show up as negative scaled scores.
+
+A scaled score of 0 means "no better than FCFS". A scaled score of 100 means "as good as the ideal
+placement". The occasional negative score means the hash artifact described above has occurred.
+Because three work items are allocated per run from a selection of 15, we'd expect the scores
+to fall slightly with a periodicity of five runs, as the sorting algorithm gets less and less
+elbow-room in handling the current kafka batch.
